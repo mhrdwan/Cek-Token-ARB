@@ -37,7 +37,7 @@ function Page1() {
         {
           headers: {
             "X-API-Key":
-              "dA2vgX2biwGAkOLbkETKmT62WYKRLTZP8hfQVXpUHGZgketeQ6PsORTXNMbJhEI8",
+              "YOUR-API-KEY",
           },
         }
       );
