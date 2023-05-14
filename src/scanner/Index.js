@@ -9,17 +9,26 @@ function Page1() {
   const [isiduit, setIsiduit] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
   const apikey = `api-key`;
+  const [isLoading, setIsLoading] = useState(false); 
+  const [ hargaarbit , sethargaarbit] = useState([])
   const columns = [
     {
       name: "No",
       selector: (row) => row.no,
-      width: `50px`,
+      width: "50px",
     },
     {
-      name: "Nama Token",
-      selector: (row) => row.name,
-      width: `200px`,
-    },
+        name: "Nama Token",
+        selector: (row) => (
+          <div>
+            <span>{row.name}</span>
+            <br />
+            <span>{row.token_address}</span>
+          </div>
+        ),
+        width: "350px",
+      },
+
     {
       name: "Symbol",
       selector: (row) => row.symbol,
@@ -31,13 +40,20 @@ function Page1() {
       width: `100px`,
     },
     {
-      name: "Token Address",
-      selector: (row) => row.token_address,
-      width: `350px`,
-    },
+        name: "Harga Token Sekarang",
+        selector: (row) => `$${row.priceUsd}`,
+        width: `200px`,
+      },
+      {
+        name: "Saldo Kamu",
+        selector: (row) => `$${(row.priceUsd * row.balance)}`,
+        width: `150px`,
+      },
+      
   ];
 
   const datatoken = async () => {
+    setIsLoading(true);
     try {
       const isi = await axios.get(
         `https://deep-index.moralis.io/api/v2/${inputValue}/erc20?chain=arbitrum&addres`,
@@ -47,16 +63,20 @@ function Page1() {
           },
         }
       );
-
-      const data = isi.data.map((item , index) => ({
-        no : index + 1,
-        name: item.name,
-        symbol: item.symbol,
-        balance: (item.balance / Math.pow(10, 18)).toFixed(2),
-        token_address: item.token_address,
-      }));
-
-      setIsidaApi(data);
+  
+      const dataWithPrice = [];
+      for (const item of isi.data) {
+        const hargaToken = await getHargaToken(item.token_address);
+        dataWithPrice.push({
+          no: dataWithPrice.length + 1,
+          name: item.name,
+          symbol: item.symbol,
+          balance: (item.balance / Math.pow(10, 18)).toFixed(2),
+          token_address: item.token_address,
+          priceUsd: hargaToken, // Harga di sini
+        });
+      }
+      setIsidaApi(dataWithPrice);
       setInputValue("");
       setErrorMessage(null);
     } catch (error) {
@@ -65,8 +85,24 @@ function Page1() {
       } else {
         setErrorMessage("Terjadi kesalahan");
       }
+    } finally {
+        setIsLoading(false);  
+      }
+  };
+
+  const getHargaToken = async (token_address) => {
+    try {
+      const res = await axios.get(
+        `https://api.dexscreener.com/latest/dex/tokens/${token_address}`
+      );
+      return res.data.pairs?.[0].priceUsd || "Harga tidak tersedia";
+    } catch (error) {
+      console.error(error);
+      return "Harga tidak tersedia";
     }
   };
+
+
 
   const balance = async () => {
     const isi = await axios.get(
@@ -85,13 +121,36 @@ function Page1() {
       })) || [];
     setIsiduit(isiw);
 
-    console.log(isiw);
   };
 
   const handleButtonClick = () => {
     datatoken(inputValue);
     balance(inputValue);
+    harga();
   };
+
+  const harga = async () => {
+    const isi = await axios.get(
+      `https://api.dexscreener.com/latest/dex/tokens/${isidataapi[0]?.token_address}`
+    );
+      const data = isi.data.pairs?.map((item, index) => ({
+          index:index,
+          priceUsd : item.priceUsd
+      })) || [] 
+  };
+
+
+  const hargaArbit = async () => {
+    const data = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/0x912CE59144191C1204E64559FE8253a0e49E6548`)
+    const isi = data.data.pairs[6].priceUsd
+    console.log( isi);
+    sethargaarbit(isi)
+  }
+
+  useEffect(() => {
+    harga();
+    hargaArbit()
+  });
   return (
     <div>
       <h1>Cek Token Di Wallet ARB Mu</h1>
@@ -110,12 +169,14 @@ function Page1() {
               </Form.Group>
 
               <h5>Address Kamu Adalah</h5>
-              {isiduit[0]?.address}
+              {isiduit[0]?.address }
               <h5>
                 <br />
                 Saldo ARB
               </h5>
-              {isiduit[0]?.balance_formatted}
+              <br />
+    {isiduit[0]?.balance_formatted}
+    <br />
               <br />
               <Button variant="primary" onClick={handleButtonClick}>
                 Submit
@@ -125,7 +186,11 @@ function Page1() {
           </Col>
         </div>
         <Col sm={{ span: 8, offset: 2 }}>
-          <DataTable columns={columns} data={isidataapi} pagination />
+          {isLoading ? (
+            <h3>Loading...</h3>  
+          ) : (
+            <DataTable columns={columns} data={isidataapi} pagination />
+          )}
         </Col>
       </Row>
     </div>
