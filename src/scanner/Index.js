@@ -8,7 +8,7 @@ function Page1() {
   const [inputValue, setInputValue] = useState("");
   const [isiduit, setIsiduit] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
-  const apikey = `api-key`;
+  const apikey = `orXONEhtfmIfKKhQ0eCIdIp9a9NCGAnP9FUs1UEMa0KYDbqJwedhZwJdkfEk8MGD`;
   const [isLoading, setIsLoading] = useState(false); 
   const [ hargaarbit , sethargaarbit] = useState([])
   const columns = [
